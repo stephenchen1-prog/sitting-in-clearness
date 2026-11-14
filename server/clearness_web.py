@@ -13,8 +13,8 @@ Safe for the public internet behind Tailscale Funnel:
 Public:        tailscale funnel --bg 8450     (off: tailscale funnel --https=443 off)
 Tailnet only:  tailscale serve --bg 8450
 """
+import ipaddress
 import os
-import re
 import sys
 import threading
 import time
@@ -38,29 +38,42 @@ SITE_PER_DAY = int(os.environ.get("CLEARNESS_SITE_PER_DAY", "800"))
 MAX_WAITING = int(os.environ.get("CLEARNESS_MAX_WAITING", "8"))
 ORIGINS = [o.strip() for o in os.environ.get(
     "CLEARNESS_ORIGINS",
-    "https://clearness.whiteknightlaw.org,https://sycpartners.co,https://www.sycpartners.co,https://clearness.sycpartners.co").split(",") if o.strip()]
-ORIGIN_RE = re.compile(r"^https://sitting-in-clearness[a-z0-9-]*\.vercel\.app$")
+    "https://clearness.whiteknightlaw.org,https://sycpartners.co,https://www.sycpartners.co,https://clearness.sycpartners.co,"
+    "https://nimble-gorge-v0gdavi.tmp.now").split(",") if o.strip()]
+PER_VISITOR_INFLIGHT = 2
 
 _model_lock = threading.Lock()
 _state_lock = threading.Lock()
 _visitor_calls = defaultdict(deque)
+_inflight = defaultdict(int)
 _site_calls = deque()
 _waiting = 0
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder=None)
 app.config["MAX_CONTENT_LENGTH"] = 40_000
 
 
 def _visitor() -> str:
-    # Behind Tailscale serve/funnel, requests come from tailscaled, which passes the real address.
-    xff = request.headers.get("X-Forwarded-For", "")
-    return (xff.split(",")[0].strip() or request.remote_addr or "?")[:64]
+    """Only trust X-Forwarded-For when the connection comes from tailscaled on this machine,
+    and then only its last entry (the one the proxy added). Group IPv6 users by /64."""
+    ra = request.remote_addr or "?"
+    if ra not in ("127.0.0.1", "::1"):
+        return ra[:64]
+    ip = request.headers.get("X-Forwarded-For", "").split(",")[-1].strip() or ra
+    if ":" in ip:
+        try:
+            ip = str(ipaddress.ip_network(ip + "/64", strict=False).network_address)
+        except ValueError:
+            pass
+    return ip[:64]
 
 
 def _admit(visitor: str):
     global _waiting
     now = time.time()
     with _state_lock:
+        if _inflight[visitor] >= PER_VISITOR_INFLIGHT:
+            return 429, "One question at a time, please. The last one is still forming."
         q = _visitor_calls[visitor]
         while q and now - q[0] > PER_VISITOR[1]:
             q.popleft()
@@ -75,6 +88,7 @@ def _admit(visitor: str):
         q.append(now)
         _site_calls.append(now)
         _waiting += 1
+        _inflight[visitor] += 1
         if len(_visitor_calls) > 5000:
             for k in [k for k, v in _visitor_calls.items() if not v]:
                 del _visitor_calls[k]
@@ -83,7 +97,7 @@ def _admit(visitor: str):
 
 def _allowed_origin():
     o = request.headers.get("Origin", "")
-    return o if (o in ORIGINS or ORIGIN_RE.match(o)) else None
+    return o if o in ORIGINS else None
 
 
 @app.after_request
@@ -93,6 +107,7 @@ def headers(resp):
     resp.headers["X-Frame-Options"] = "DENY"
     resp.headers["Cache-Control"] = "no-store"
     resp.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    resp.headers["Strict-Transport-Security"] = "max-age=31536000"
     resp.headers["Content-Security-Policy"] = (
         "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
         "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
@@ -129,7 +144,10 @@ def preflight():
 @app.post("/api/committee")
 def committee():
     global _waiting
-    data = request.get_json(silent=True)
+    try:
+        data = request.get_json(silent=True)
+    except (ValueError, RecursionError):
+        data = None
     if not isinstance(data, dict):
         return jsonify({"error": "bad request"}), 400
     action = data.get("action")
@@ -140,10 +158,11 @@ def committee():
         return jsonify({"error": "unknown member"}), 400
     try:
         meeting = clearness.Meeting.from_dict(data.get("meeting"))
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+    except (ValueError, TypeError, RecursionError):
+        return jsonify({"error": "bad meeting data"}), 400
 
-    refusal = _admit(_visitor())
+    visitor = _visitor()
+    refusal = _admit(visitor)
     if refusal:
         return jsonify({"error": refusal[1]}), refusal[0]
     try:
@@ -161,9 +180,13 @@ def committee():
     finally:
         with _state_lock:
             _waiting -= 1
+            _inflight[visitor] -= 1
+            if _inflight[visitor] <= 0:
+                del _inflight[visitor]
 
 
 if __name__ == "__main__":
     print(f"[clearness] http://{HOST}:{PORT}  (visitor text is never logged)")
     from waitress import serve
-    serve(app, host=HOST, port=PORT, threads=12, connection_limit=200, channel_timeout=300)
+    serve(app, host=HOST, port=PORT, threads=12, connection_limit=100, channel_timeout=60,
+          max_request_body_size=65536)

@@ -161,7 +161,8 @@ class Meeting:
                 continue
             m.rounds.append([{"m": q["m"], "q": str(q.get("q") or "")[:L["question"]],
                               "a": str(q.get("a") or "")[:L["answer"]], "passed": bool(q.get("passed"))}
-                             for q in r[:L["per_round"]] if isinstance(q, dict) and q.get("m") in BY_ID])
+                             for q in r[:L["per_round"]]
+                             if isinstance(q, dict) and isinstance(q.get("m"), str) and q["m"] in BY_ID])
         return m
 
     def all_questions(self) -> list:
