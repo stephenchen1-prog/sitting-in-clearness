@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sitting in Clearness</title>
+<meta name="description" content="A quiet way to sit with a concern or a matter for meeting, adapted from the Quaker clearness committee: one honest question at a time, with silence in between.">
+<meta name="referrer" content="no-referrer">
+<script src="config.js"></script>
+<style>
+/* A plain room: limewash wall, oak benches, slate-green for the one thing to press. */
+:root{
+  --wall:#F1F2EE; --paper:#FBFBF8; --ink:#1D2420; --muted:#4D5852; --line:#CFD5CE;
+  --accent:#2C5650; --accent-ink:#FFFFFF; --accent-soft:#DDE9E5; --oak:#87633F; --oak-soft:#E7DCCD; --light:rgba(255,250,232,.85);
+  --warn:#7A4E0E; --warn-soft:#F4E8D2; --focus:#2C5650;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --wall:#161A18; --paper:#1D2220; --ink:#E9ECE8; --muted:#AEB8B2; --line:#353E3A;
+  --accent:#8CC0B5; --accent-ink:#0E1412; --accent-soft:#22322E; --oak:#C9A47D; --oak-soft:#3A3128; --light:rgba(255,240,200,.07);
+  --warn:#E6BD70; --warn-soft:#2E2617; --focus:#8CC0B5; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --wall:#161A18; --paper:#1D2220; --ink:#E9ECE8; --muted:#AEB8B2; --line:#353E3A;
+  --accent:#8CC0B5; --accent-ink:#0E1412; --accent-soft:#22322E; --oak:#C9A47D; --oak-soft:#3A3128; --light:rgba(255,240,200,.07);
+  --warn:#E6BD70; --warn-soft:#2E2617; --focus:#8CC0B5; color-scheme:dark }
+
+*{box-sizing:border-box}
+html{font-size:19px;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--wall);color:var(--ink);font-family:var(--sans);line-height:1.6;min-height:100vh;
+  background-image:linear-gradient(100deg,transparent 0%,transparent var(--l1,20%),var(--light) var(--l2,32%),transparent var(--l3,46%),transparent 100%);
+  background-attachment:fixed}
+.wrap{max-width:620px;margin:0 auto;padding-block:max(16px,env(safe-area-inset-top)) 40px;
+  padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right));
+  display:flex;flex-direction:column;gap:24px}
+h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.25;margin:0;text-wrap:balance}
+h1{font-size:1.9rem} h2{font-size:1.45rem} h3{font-size:1.1rem}
+h1:focus,h2:focus,p:focus{outline:none}
+p{margin:0}
+.stack{display:flex;flex-direction:column;gap:14px}
+.muted{color:var(--muted)}
+.small{font-size:.9rem}
+a{color:var(--accent);text-underline-offset:3px}
+
+/* Room */
+.room{width:min(200px,60%);margin:0 auto;display:block}
+.room .bench{fill:var(--oak-soft);stroke:var(--oak);stroke-width:1.5}
+.room .place{fill:var(--paper);stroke:var(--oak);stroke-width:1.2;transition:fill .8s}
+.room .place.on{fill:var(--oak-soft)}
+.room .place.off{opacity:.35}
+.room .place.warm{fill:var(--oak)}
+.room .you{fill:var(--accent)}
+.room text{font:600 8px var(--sans);fill:var(--muted)}
+
+/* Controls: big, plain, easy to tap */
+button{font:inherit;font-size:1rem;min-height:54px;padding:12px 20px;border-radius:12px;border:1.5px solid var(--line);
+  background:var(--paper);color:var(--ink);cursor:pointer;text-align:center;font-weight:500;line-height:1.3}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+button.big{min-height:72px;font-size:1.1rem;text-align:left;display:flex;flex-direction:column;gap:2px;align-items:flex-start}
+button.big span{font-size:.88rem;font-weight:400;opacity:.85}
+button.link{background:none;border:none;color:var(--accent);text-decoration:underline;text-underline-offset:3px;padding:10px 4px;min-height:44px}
+button:focus-visible,textarea:focus-visible,input:focus-visible,summary:focus-visible,select:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+button:disabled{opacity:.5;cursor:not-allowed}
+.choices{display:flex;flex-direction:column;gap:12px}
+.choices.row{flex-direction:row;flex-wrap:wrap}
+.choices.row > *{flex:1 1 170px}
+label{font-weight:600}
+.hint{font-weight:400;color:var(--muted);font-size:.92rem;display:block}
+textarea,select{font:inherit;font-size:1rem;color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;width:100%}
+textarea{resize:vertical;min-height:6.5em;line-height:1.5}
+.field{display:flex;flex-direction:column;gap:8px}
+
+/* Cards that open */
+.card{border:1.5px solid var(--line);border-radius:12px;background:var(--paper)}
+.card > summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;gap:12px;align-items:center;min-height:56px;font-weight:600}
+.card > summary::-webkit-details-marker{display:none}
+.card > summary::after{content:"+";margin-left:auto;color:var(--muted);font-weight:400;font-size:1.3rem}
+.card[open] > summary::after{content:"–"}
+.card .inner{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
+.comp{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+.comp input{width:26px;height:26px;accent-color:var(--accent);flex:none;margin-top:2px}
+.comp .who b{display:block}
+.comp .who span{color:var(--muted);font-size:.9rem;display:block}
+blockquote{margin:0;font-family:var(--serif);font-size:1.05rem;line-height:1.5}
+cite{font-style:normal;color:var(--muted);font-size:.88rem;display:block;margin-top:4px;font-family:var(--sans)}
+.note{background:var(--warn-soft);color:var(--warn);border-radius:12px;padding:14px 16px}
+.plain{border-left:3px solid var(--oak);padding-left:14px}
+.example-list{display:flex;flex-direction:column;gap:8px}
+.example-list button{text-align:left;font-size:.95rem;min-height:48px;font-weight:400}
+
+/* Demo */
+.demo{background:var(--paper);border:1.5px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-height:200px}
+.demo .tag{align-self:flex-start;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--warn);background:var(--warn-soft);padding:3px 8px;border-radius:6px}
+.demo .k{font-size:.85rem;color:var(--muted)}
+.demo .t{font-family:var(--serif);font-size:1.2rem;line-height:1.4}
+.demo .t.q{font-size:1.3rem}
+.demo .step{transition:opacity .6s ease}
+.demo .dots{display:flex;gap:6px}
+.demo .dots i{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.demo .dots i.on{background:var(--accent)}
+
+/* Quiet screens */
+.quiet{min-height:58vh;display:flex;flex-direction:column;justify-content:center;gap:26px;text-align:center}
+.reading{font-family:var(--serif);font-size:1.45rem;line-height:1.45;transition:opacity 20s ease}
+.reading.faded{opacity:.2}
+.question{font-family:var(--serif);font-size:1.7rem;line-height:1.35;text-wrap:balance}
+.lens{font-size:.95rem;color:var(--muted)}
+.count{font-size:.85rem;color:var(--muted)}
+.reveal{opacity:0;transition:opacity 1s ease}
+.reveal.shown{opacity:1}
+.waiting-quote{font-family:var(--serif);font-size:1.1rem;color:var(--muted)}
+.room-list{text-align:left}
+
+/* Words to carry */
+.paper{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:26px 20px;display:flex;flex-direction:column;gap:20px}
+.paper h3{font-size:.85rem;font-family:var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.paper .own{font-family:var(--serif);font-size:1.12rem;line-height:1.5}
+.paper ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{min-height:44px;padding:8px 14px;border-radius:999px;font-size:.92rem}
+
+footer{border-top:1px solid var(--line);padding-top:20px;display:flex;flex-direction:column;gap:12px;font-size:.92rem;color:var(--muted)}
+footer h2{font-size:1.1rem;color:var(--ink)}
+footer b{color:var(--ink)}
+.toprow{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.toprow .name{font-family:var(--serif);font-size:1.05rem;font-weight:600}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+@media print{
+  body{background:#fff;color:#000} .wrap > *:not(#app){display:none!important}
+  #app > *:not(.paper){display:none!important} .paper{border:none;padding:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toprow">
+    <button class="link name" data-home style="color:var(--ink);text-decoration:none">Sitting in Clearness</button>
+  </div>
+  <main id="app"></main>
+  <div id="live" class="sr" aria-live="polite"></div>
+  <footer>
+    <h2>About</h2>
+    <p>Sitting in Clearness was made by Stephen Chen as part of the work of White Knight Law Inc., a nonprofit that builds open-source tools to serve people. He makes AI that supports human judgment rather than replacing it.</p>
+    <p>Questions, a correction, or a quotation we got wrong? Write to <b style="user-select:all">ai@whiteknightlaw.org</b>.</p>
+    <p><b>Where your words go.</b> What you write stays on this device. To form each question, your words are sent to one computer run by White Knight Law, where a small AI model reads them. Nothing is stored there or shared, and no outside AI company sees it. “Lay this down” erases it from this device.</p>
+    <p>This is not a clearness committee and cannot replace one. For a weighty matter, ask your meeting.</p>
+  </footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+const API = String(window.CLEARNESS_API || "").replace(/\/$/, "");
+const KEY = "sitting-in-clearness-v3";
+const OFFLINE = "The computer that forms the questions isn’t answering right now. It may be resting. Please try again a little later.";
+
+const C = [
+  {id:"truth",  lens:"Listening for truth",            friend:"Lucretia Mott",   years:"1793–1880", why:"Minister and abolitionist who would not set any church’s authority above conscience.", quote:"Truth for authority, not authority for truth.", source:"Her motto"},
+  {id:"fear",   lens:"Listening for fear and pressure", friend:"Douglas Steere",  years:"1901–1995", why:"Philosopher and Friend who wrote the classic Quaker essay on listening.", quote:"listen another’s soul into a condition of disclosure and discovery", source:"On Listening to Another, 1955"},
+  {id:"draws",  lens:"Listening for what draws you",    friend:"Thomas Kelly",    years:"1893–1941", why:"Wrote of the inward sanctuary where each of us may be guided.", quote:"Deep within us all there is an amazing inner sanctuary of the soul, a holy place, a Divine Center.", source:"A Testament of Devotion, 1941"},
+  {id:"others", lens:"Listening for others affected",   friend:"George Fox",      years:"1624–1691", why:"Founder of the Religious Society of Friends, who saw that of God in every one.", quote:"walk cheerfully over the world, answering that of God in every one", source:"Letter from Launceston gaol, 1656"},
+  {id:"timing", lens:"Listening for timing",            friend:"Isaac Penington", years:"1616–1679", why:"Waited long years in darkness before finding Friends, and knew how a matter seasons.", quote:"sink down to the seed which God sows in the heart, and let that grow in thee", source:"1661"},
+  {id:"carry",  lens:"Listening for what you carry",    friend:"John Woolman",    years:"1720–1772", why:"Gave up profitable trade, and dyed cloth, rather than gain from slavery.", quote:"to turn all the treasures we possess into the channel of universal love becomes the business of our lives", source:"A Plea for the Poor"}
+];
+const BY = Object.fromEntries(C.map(c => [c.id, c]));
+const READ_OPEN  = {text:"Be still and cool in thy own mind and spirit from thy own thoughts.", who:"George Fox, letter to Lady Claypole, 1658"};
+const READ_CLOSE = {text:"When I came into the silent assemblies of God’s people, I felt a secret power among them.", who:"Robert Barclay, Apology, 1676"};
+const READ_END   = {text:"Our life is love, and peace, and tenderness; and bearing one with another.", who:"Isaac Penington, 1667"};
+
+const PERSONAL_EXAMPLES = [
+  "I’ve been asked to clerk our meeting next year. Part of me feels drawn to it, and part of me is tired and afraid of letting Friends down.",
+  "I’m being asked to take on more care for an aging parent, and I can’t tell where love ends and overwork begins.",
+  "I feel a nudge to speak out publicly on something, and I don’t know if it’s a true leading or my own anger."
+];
+// The hardest kinds of questions meetings carry. General examples, not about any one meeting.
+const GOV_EXAMPLES = [
+  "Our meetinghouse needs repairs we can’t afford. Do we sell it, share it with others, or lay down the meeting?",
+  "A long-time Friend’s behavior is hurting others. How do we hold care for them and safety for the meeting together?",
+  "One Friend stands in the way of a decision most of us feel clear about. How do we wait without forcing unity?",
+  "Should the meeting take a public stand, or sign on to a cause that some Friends feel is political rather than a leading?",
+  "We have received a large bequest. How do we use it faithfully, and what about our invested funds?",
+  "Safeguarding: some Friends feel new child-protection practices imply distrust of people they’ve known for decades.",
+  "What does our meeting owe for its history: the land it sits on, or past ties to slavery?",
+  "A member hasn’t attended in years and no longer shares the meeting’s faith. Do we change their membership, and how?",
+  "We are a small, aging meeting. Do we keep going as we are, merge with another meeting, or lay the meeting down?"
+];
+const RESTS = ["Something is opening", "It needs more time", "This may not be mine", "Nothing to name yet"];
+const FINDER = "https://www.fgcquaker.org/quaker-finder/";
+const LEARN = [
+  {t:"QuakerSpeak", d:"Short videos of Friends talking about their faith and lives.", u:"https://quakerspeak.com/"},
+  {t:"Friends General Conference", d:"An introduction to Quaker worship, and what to expect at your first meeting.", u:"https://www.fgcquaker.org/"},
+  {t:"Friends Journal", d:"Stories and essays from Friends today, and a directory of meetings.", u:"https://www.friendsjournal.org/"},
+  {t:"Quakers in Britain", d:"Advices and Queries, and Quaker faith in Britain.", u:"https://www.quaker.org.uk/"}
+];
+const VISIT_SUBJECT = "Visiting your meeting for worship";
+const VISIT_BODY = "Hello Friends,\n\nI'm new to Quakers and would love to visit meeting for worship. When and where do you meet, and is there anything a first-time visitor should know?\n\nThank you,\n";
+const DEMO = [
+  {k:"Your concern", t:"I’ve been asked to clerk our meeting next year, and I can’t tell whether I’m drawn to it or just afraid to say no."},
+  {k:"Opening silence", t:"“Be still and cool in thy own mind and spirit from thy own thoughts.”"},
+  {k:"Listening for what draws you · in the spirit of Thomas Kelly", t:"What do you notice in yourself when you imagine sitting at the clerk’s table?", q:true},
+  {k:"You write", t:"A kind of steadiness. And then worry about the hard business meetings."},
+  {k:"Listening for timing · in the spirit of Isaac Penington", t:"What might you learn by letting this rest a month before answering?", q:true},
+  {k:"You pass", t:"Passing is always welcome."},
+  {k:"Your own words, given back", t:"“A kind of steadiness.”"}
+];
+
+function fresh(){
+  return {screen:"start", mode:"personal", concern:"", need:"", selected:["truth","fear","draws","others","timing"],
+    openMin:1, pauseSec:10, roundsWanted:2, rounds:[], turn:0, current:null, quotes:null, affirm:null, queries:null,
+    wantAffirm:true, wantQueries:true, wantMirror:true, notes:"", started:null, zip:""};
+}
+let S; try { S = JSON.parse(localStorage.getItem(KEY) || "null"); } catch(e) { S = null; }
+if (!S || !S.screen) S = fresh();
+if (["waiting","rest","silence","closing-silence","silent-member","trouble","gathering","mirror","question"].includes(S.screen)) S.screen = S.rounds.length ? "carry" : "concern";
+
+const app = document.getElementById("app"), live = document.getElementById("live");
+let timers = [], pending = null, wake = null, demoTimer = null;
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {} }
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function clearTimers(){ timers.forEach(clearTimeout); timers = []; }
+function later(fn, ms){ timers.push(setTimeout(fn, ms)); }
+function say(t){ live.textContent = ""; setTimeout(() => { live.textContent = t; }, 50); }
+const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+const gov = () => S.mode === "governance";
+
+// Light moving slowly across the wall, as in a meetinghouse.
+function light(){
+  const mins = S.started ? (Date.now() - Date.parse(S.started)) / 60000 : 0;
+  const x = reduce ? 26 : 18 + Math.min(mins, 60) * 0.8;
+  const st = document.body.style;
+  st.setProperty("--l1", (x - 10) + "%"); st.setProperty("--l2", x + "%"); st.setProperty("--l3", (x + 14) + "%");
+}
+light(); setInterval(light, 60000);
+
+async function keepAwake(on){
+  try {
+    if (on && "wakeLock" in navigator && !wake) { wake = await navigator.wakeLock.request("screen"); wake.addEventListener("release", () => { wake = null; }); }
+    if (!on && wake) { await wake.release(); wake = null; }
+  } catch(e) { wake = null; }
+}
+
+function room(warm){
+  const places = [[78,30],[122,30],[30,78],[30,122],[170,78],[170,122]];
+  let svg = `<svg class="room" viewBox="0 0 200 205" aria-hidden="true">
+    <rect class="bench" x="55" y="20" width="90" height="20" rx="3"/>
+    <rect class="bench" x="20" y="55" width="20" height="90" rx="3"/>
+    <rect class="bench" x="160" y="55" width="20" height="90" rx="3"/>
+    <rect class="bench" x="70" y="160" width="60" height="20" rx="3"/>`;
+  C.forEach((c, i) => {
+    const [x, y] = places[i];
+    svg += `<circle class="place ${S.selected.includes(c.id) ? "on" : "off"} ${warm === c.id ? "warm" : ""}" cx="${x}" cy="${y}" r="8"/>`;
+  });
+  return svg + `<circle class="you" cx="100" cy="170" r="8"/><text x="100" y="200" text-anchor="middle">${gov() ? "the meeting" : "you"}</text></svg>`;
+}
+
+// ---- The computer that forms the questions ----
+function payload(){
+  return {concern:S.concern, need:S.need, mode:S.mode,
+    rounds:S.rounds.map(r => r.map(q => ({m:q.m, q:q.q, a:q.silent ? "" : (q.a || ""), passed:!!q.passed})))};
+}
+async function api(action, extra, signal){
+  let r, d = {};
+  try {
+    r = await fetch(API + "/api/committee", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(Object.assign({action, meeting: payload()}, extra || {})), signal});
+    d = await r.json().catch(() => ({}));
+  } catch(e) {
+    if (signal && signal.aborted) throw {cancelled:true};
+    throw {msg: OFFLINE};
+  }
+  if (!r.ok) throw {msg: d.error || OFFLINE};
+  return d;
+}
+
+// ---- Turns: one companion, one question ----
+const total = () => S.selected.length * S.roundsWanted;
+const companionFor = turn => BY[S.selected[turn % S.selected.length]];
+function fetchQuestion(turn){
+  const c = companionFor(turn), ac = new AbortController();
+  const p = api("question", {member:c.id}, ac.signal).then(d => ({c, q: d.question || null}));
+  p.catch(() => {});
+  return (pending = {turn, p, ac});
+}
+async function nextTurn(){
+  clearTimers();
+  if (S.turn >= total()) return go("closing-silence");
+  const c = companionFor(S.turn);
+  const pend = (pending && pending.turn === S.turn) ? pending : fetchQuestion(S.turn);
+  S.screen = "waiting"; S.waitingFor = c.id; save(); render();
+  try {
+    const {q} = await pend.p;
+    if (S.screen !== "waiting" || S.turn !== pend.turn) return;
+    pending = null;
+    if (!q){ S.screen = "silent-member"; save(); render(); later(advance, 3500); return; }
+    S.current = {m:c.id, q}; S.screen = "question"; save(); render();
+    say(`${c.lens}. ${q}`);
+  } catch(e) {
+    pending = null;
+    if (e && e.cancelled) return;
+    S.screen = "trouble"; S.trouble = e.msg || OFFLINE; save(); render();
+  }
+}
+function record(kind, text){
+  const r = Math.floor(S.turn / S.selected.length);
+  while (S.rounds.length <= r) S.rounds.push([]);
+  S.rounds[r].push({m:S.current.m, q:S.current.q, a:text || "", passed:kind === "pass", silent:kind === "silent"});
+  S.current = null;
+  advance();
+}
+function advance(){
+  clearTimers();
+  S.turn++;
+  if (S.turn >= total()) { save(); return go("closing-silence"); }
+  fetchQuestion(S.turn);                              // the next companion listens during the pause
+  if (S.pauseSec > 0){ S.screen = "rest"; save(); render(); later(nextTurn, S.pauseSec * 1000); }
+  else nextTurn();
+}
+// At the close, gather automatically: your words back, what may be unspoken, one plain affirmation.
+let gathering = false;
+async function gather(){
+  if (!S.wantMirror && !S.wantQueries && !S.wantAffirm) return go("carry");
+  gathering = true; go("gathering"); say("Gathering. This can take a minute or two.");
+  if (S.wantMirror){ try { const d = await api("reflect"); S.quotes = Array.isArray(d.quotes) ? d.quotes : []; } catch(err) { S.quotes = []; } }
+  if (gathering && S.wantQueries){ try { const d = await api("queries"); S.queries = Array.isArray(d.queries) ? d.queries : []; } catch(err) { S.queries = []; } }
+  if (gathering && S.wantAffirm){ try { const d = await api("affirm"); S.affirm = d.text || null; } catch(err) { S.affirm = null; } }
+  if (gathering){ gathering = false; go("carry"); }
+}
+const standing = () =>S.rounds.flat().filter(q => q.passed || q.silent || !String(q.a || "").trim()).map(q => q.q);
+
+// ---- Screens ----
+function go(screen){ clearTimers(); S.screen = screen; save(); render(); }
+
+function learnCards(intro){
+  const mail = "mailto:?subject=" + encodeURIComponent(VISIT_SUBJECT) + "&body=" + encodeURIComponent(VISIT_BODY);
+  return `<details class="card" id="find"><summary>Sit with others: find a Quaker meeting near you</summary><div class="inner">
+      ${intro ? `<p>${esc(intro)}</p>` : ""}
+      <p class="small muted">Meetings welcome visitors. You can just show up, sit in the silence, and leave whenever you like. No one will ask you to speak.</p>
+      <div class="field"><label for="zip">Your zip code</label>
+        <input id="zip" data-f="zip" inputmode="numeric" autocomplete="postal-code" maxlength="10" value="${esc(S.zip)}"
+          style="font:inherit;font-size:1rem;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);max-width:12em"></div>
+      <div class="choices row">
+        <button class="primary" data-act="find-meeting">Find meetings near me</button>
+        <button data-act="write-meeting" data-mail="${esc(mail)}">Write to a meeting</button>
+      </div>
+      <p class="small muted" id="find-note">“Find” copies your zip code and opens the Friends General Conference Quaker Finder; paste it into their search. “Write” opens your own email with a short visit request ready. Add the meeting’s address from the finder, then send it yourself.</p>
+    </div></details>
+    <details class="card"><summary>New to Quakers?</summary><div class="inner">
+      <p>Quakers, or Friends, worship mostly in shared silence. Anyone may stand and speak if they feel truly moved. There are no clergy in most meetings, and decisions are made together, by waiting for unity rather than by voting.</p>
+      <p>Friends try to live out a few testimonies: simplicity, peace, integrity, community, equality and care for the earth. The clearness committee this page is adapted from is one of their ways of helping a person hear their own guidance.</p>
+      <div class="example-list">${LEARN.map(l => `<a class="card" href="${l.u}" target="_blank" rel="noopener" style="display:block;padding:12px 16px;text-decoration:none;color:var(--ink)"><b>${esc(l.t)}</b><span class="hint">${esc(l.d)}</span></a>`).join("")}</div>
+    </div></details>`;
+}
+
+function stillInRoom(){
+  const s = standing();
+  if (!s.length) return "";
+  return `<details class="card room-list"><summary>Still in the room (${s.length})</summary><div class="inner">
+    <p class="small muted">Questions you passed on or sat with. They stay here, unaddressed, and you can carry them home.</p>
+    <ul style="margin:0;padding-left:1.2em">${s.map(q => `<li>${esc(q)}</li>`).join("")}</ul></div></details>`;
+}
+
+function vStart(){
+  return `<section class="stack">
+    <div class="demo" id="demo" aria-label="Example of a sitting">
+      <span class="tag">Example · 30 seconds</span>
+      <div class="step" id="demo-step"></div>
+      <div class="toprow"><div class="dots" id="demo-dots" aria-hidden="true">${DEMO.map(() => "<i></i>").join("")}</div>
+      <button class="link" data-act="demo-again" style="min-height:40px;padding:4px">Play again</button></div>
+    </div>
+    <h1 tabindex="-1">Bring a concern into the quiet.</h1>
+    <p>Big decision? Stuck at a crossroads? Sit with it. One honest question at a time, with quiet in between, adapted from the Quaker clearness committee. No advice, no hot takes, no sign-up.</p>
+    <div class="choices">
+      <button class="primary big" data-act="mode" data-v="personal">A concern of my own<span>A decision, a leading, a crossroads</span></button>
+      <button class="big" data-act="mode" data-v="governance">A matter for our meeting<span>Season a hard question before business meeting</span></button>
+    </div>
+    <p class="plain small">This is not a clearness committee and cannot replace one. For a weighty matter, ask your meeting.</p>
+    <details class="card"><summary>The hardest questions meetings carry</summary><div class="inner">
+      <p class="small muted">Tap one to sit with it. These are general examples, not about any one meeting.</p>
+      <div class="example-list">${GOV_EXAMPLES.map((g, i) => `<button data-act="gov-example" data-i="${i}">${esc(g)}</button>`).join("")}</div>
+    </div></details>
+    <details class="card"><summary>How it works</summary><div class="inner small">
+      <p>1. Write your concern in a few lines.</p>
+      <p>2. A minute of quiet.</p>
+      <p>3. Questions come one at a time, each in the spirit of a Friend from our history. Write an answer, sit with it silently, or pass.</p>
+      <p>4. At the close, your own words come back to you, with any questions still in the room.</p>
+      <p class="muted">About fifteen minutes. Each question takes a little while to form; let that be part of the quiet.</p>
+    </div></details>
+    ${learnCards("")}
+  </section>`;
+}
+
+function vConcern(){
+  const ex = gov() ? GOV_EXAMPLES : PERSONAL_EXAMPLES;
+  return `<section class="stack">
+    <h2 tabindex="-1">${gov() ? "The matter before the meeting" : "Your concern"}</h2>
+    <div class="field">
+      <label for="concern">${gov() ? "What is the meeting trying to discern?" : "What are you trying to discern?"}<span class="hint">A few lines is plenty. Leave out names.</span></label>
+      <textarea id="concern" data-f="concern" rows="5">${esc(S.concern)}</textarea>
+    </div>
+    <details class="card"><summary>Or start from an example</summary><div class="inner"><div class="example-list">
+      ${ex.map((t, i) => `<button data-act="use-example" data-i="${i}">${esc(t)}</button>`).join("")}</div></div></details>
+    <div class="choices"><button class="primary" data-act="begin-silence" id="begin-btn" ${S.concern.trim() && S.selected.length ? "" : "disabled"}>Begin with ${S.openMin} minute${S.openMin > 1 ? "s" : ""} of quiet</button></div>
+    <details class="card"><summary>Adjust (optional)</summary><div class="inner">
+      <div class="field"><label for="need">What do you most need to listen for today?</label>
+        <textarea id="need" data-f="need" rows="2" style="min-height:3.5em">${esc(S.need)}</textarea></div>
+      <p class="small muted">Who sits with you. These Friends are companions in the practice, not voices; the questions come from a small AI program.</p>
+      ${C.map(c => `<label class="comp" for="c-${c.id}" style="font-weight:400"><input type="checkbox" id="c-${c.id}" data-f="c:${c.id}" ${S.selected.includes(c.id) ? "checked" : ""}>
+        <span class="who"><b>${esc(c.lens)}</b><span>in the spirit of ${esc(c.friend)} (${esc(c.years)}). ${esc(c.why)}</span>
+        <blockquote style="margin-top:6px;font-size:.98rem">“${esc(c.quote)}”<cite>${esc(c.source)}</cite></blockquote></span></label>`).join("")}
+      <div class="field"><label for="openMin">Opening quiet</label><select id="openMin" data-f="openMin">${[1,2,3,5].map(v => `<option value="${v}" ${S.openMin == v ? "selected" : ""}>${v} minute${v > 1 ? "s" : ""}</option>`).join("")}</select></div>
+      <div class="field"><label for="pauseSec">Quiet between questions</label><select id="pauseSec" data-f="pauseSec">${[[0,"None"],[10,"10 seconds"],[20,"20 seconds"],[45,"45 seconds"]].map(([v,l]) => `<option value="${v}" ${S.pauseSec == v ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+      <p class="small muted" style="margin-top:6px">At the close, automatically:</p>
+      ${[["wantMirror","Give my own words back to me (mirroring)"],["wantQueries","Name what may be in the room, not yet said"],["wantAffirm","Name one thing I showed, in one plain sentence"]].map(([k, l]) =>
+        `<label class="comp" for="${k}" style="font-weight:400"><input type="checkbox" id="${k}" data-f="${k}" ${S[k] ? "checked" : ""}><span class="who"><b>${l}</b></span></label>`).join("")}
+      <div class="field"><label for="roundsWanted">Rounds</label><select id="roundsWanted" data-f="roundsWanted">${[1,2,3].map(v => `<option value="${v}" ${S.roundsWanted == v ? "selected" : ""}>${v}</option>`).join("")}</select></div>
+    </div></details>
+    <p class="plain small">Only honest, open questions will be asked. You may pass on any of them. Nothing here is shared.</p>
+  </section>`;
+}
+
+function vSilence(reading, label, next){
+  return `<section class="quiet">
+    <p class="lens" tabindex="-1">${esc(label)}</p>
+    <blockquote class="reading" id="reading">“${esc(reading.text)}”<cite>${esc(reading.who)}</cite></blockquote>
+    <div class="choices"><button data-act="${next}" id="ready-btn">I’m ready</button></div>
+  </section>`;
+}
+
+function vWaiting(){
+  const c = BY[S.waitingFor];
+  return `<section class="quiet">
+    <p class="count">Question ${S.turn + 1} of ${total()}</p>
+    ${room(c.id)}
+    <p class="lens" tabindex="-1">Listening, in the spirit of ${esc(c.friend)}…</p>
+    <blockquote class="waiting-quote reveal" id="wq">“${esc(c.quote)}”<cite>${esc(c.friend)}</cite></blockquote>
+    <div><button class="link" data-act="skip-companion">Don’t wait; go to the next one</button></div>
+    ${stillInRoom()}
+  </section>`;
+}
+
+function vSilentMember(){
+  const c = BY[S.waitingFor];
+  return `<section class="quiet"><p class="lens">${esc(c.lens)}</p>
+    <p class="question" style="font-size:1.3rem" tabindex="-1">No question rose in the spirit of ${esc(c.friend)}. Silence is also an answer.</p></section>`;
+}
+
+function vQuestion(){
+  const c = BY[S.current.m];
+  return `<section class="quiet" style="justify-content:flex-start;padding-top:2vh">
+    <p class="count">Question ${S.turn + 1} of ${total()}</p>
+    <p class="lens">${esc(c.lens)} · in the spirit of ${esc(c.friend)}</p>
+    <h2 class="question" tabindex="-1">${esc(S.current.q)}</h2>
+    <div class="stack reveal" id="answer-area" style="text-align:left">
+      <div class="field">
+        <label for="answer">Your answer <span class="hint">Optional, and only you will read it. Leave it empty to just sit with the question.</span></label>
+        <textarea id="answer" rows="3"></textarea>
+      </div>
+      <div class="choices row">
+        <button class="primary" data-act="answered">Continue</button>
+        <button data-act="pass">Pass</button>
+      </div>
+      <p class="small muted" style="text-align:center">Passing is always welcome.</p>
+    </div>
+    ${stillInRoom()}
+    <div><button class="link" data-act="to-close">I’d like to close now</button></div>
+  </section>`;
+}
+
+function vRest(){
+  return `<section class="quiet"><p class="lens" tabindex="-1">A pause</p>
+    <p class="reading" style="font-size:1.2rem">Let it settle. Nothing needs deciding yet.</p>
+    <div class="choices"><button data-act="continue">Continue</button></div>${stillInRoom()}</section>`;
+}
+
+function vTrouble(){
+  return `<section class="stack"><h2 tabindex="-1">A moment, please</h2><p class="note">${esc(S.trouble)}</p>
+    <div class="choices"><button class="primary" data-act="retry">Try again</button><button data-act="to-close">Close with what we have</button></div></section>`;
+}
+
+function vMirror(){
+  return `<section class="stack">
+    <h2 tabindex="-1">Before we close</h2>
+    <p>Friends may mirror back what they heard, but only if you wish. Here that means a few of your own words, given back exactly as you wrote them.</p>
+    <label class="comp" style="font-weight:400;border:none;padding:0"><input type="checkbox" id="wantQueries" data-f="wantQueries" ${S.wantQueries ? "checked" : ""}>
+      <span class="who"><b>Name what may be in the room, not yet said</b><span>A few queries, in the plain style of Advices and Queries. No answers.</span></span></label>
+    <label class="comp" style="font-weight:400;border:none;padding:0"><input type="checkbox" id="wantAffirm" data-f="wantAffirm" ${S.wantAffirm ? "checked" : ""}>
+      <span class="who"><b>Name one thing you showed here</b><span>One plain sentence, in your own words.</span></span></label>
+    <div class="choices"><button class="primary" data-act="mirror" id="mirror-btn">Give my words back</button><button data-act="no-mirror">Go to my notes</button></div>
+    <p class="small muted" id="mirror-wait" hidden>Gathering… this can take a minute or two.</p>
+  </section>`;
+}
+
+function vGathering(){
+  return `<section class="quiet">${room()}
+    <p class="lens" tabindex="-1">Gathering what was said…</p>
+    <p class="reading" style="font-size:1.15rem">Your own words, what may still be in the room, and one plain thing you showed. This can take a minute or two.</p>
+    <div><button class="link" data-act="skip-gather">Skip to my notes</button></div></section>`;
+}
+
+function vCarry(){
+  const date = new Date(S.started || Date.now()).toLocaleDateString(undefined, {year:"numeric", month:"long", day:"numeric"});
+  const st = standing();
+  return `<section class="paper" id="carry">
+      <p class="muted small">${esc(date)}</p>
+      <h2 tabindex="-1" style="font-size:1.4rem">Words to carry</h2>
+      <div class="stack"><h3>${gov() ? "The matter" : "Your concern"}</h3><p class="own">${esc(S.concern)}</p></div>
+      ${S.quotes && S.quotes.length ? `<div class="stack"><h3>Your own words, given back</h3>${S.quotes.map(q => `<p class="own">“${esc(q)}”</p>`).join("")}</div>` : ""}
+      ${S.affirm ? `<div class="stack"><h3>Something you showed</h3><p>${esc(S.affirm)}</p></div>` : ""}
+      ${st.length ? `<div class="stack"><h3>Still in the room</h3><ul>${st.map(q => `<li>${esc(q)}</li>`).join("")}</ul></div>` : ""}
+      ${S.queries && S.queries.length ? `<div class="stack"><h3>Perhaps in the room, not yet addressed</h3><ul>${S.queries.map(q => `<li>${esc(q)}</li>`).join("")}</ul></div>` : ""}
+      <div class="stack"><h3>Where it rests for now</h3>
+        <div class="chips">${RESTS.map(r => `<button data-act="rest-chip" data-v="${esc(r)}">${esc(r)}</button>`).join("")}</div>
+        <label class="sr" for="notes">Your own notes</label>
+        <textarea id="notes" data-f="notes" rows="3" placeholder="Your own words, if any. This part is yours alone.">${esc(S.notes)}</textarea></div>
+      <blockquote style="padding-top:8px;border-top:1px solid var(--line)">“${esc(READ_END.text)}”<cite>${esc(READ_END.who)}</cite></blockquote>
+    </section>
+    <section class="stack">
+      <p class="small muted">A good clearness process does not end here. ${gov() ? "To bring this to the clerk or to business meeting" : "To bring this to your meeting"}, if you wish, print or save it.</p>
+      <div class="choices row"><button data-act="print">Print or save</button><button data-act="copy">Copy the words</button></div>
+      <div class="field" id="copy-fallback" hidden><label for="copy-text">Select all and copy</label><textarea id="copy-text" rows="8" readonly></textarea></div>
+      <p class="plain small">Nothing here is shared, and this will not be raised with you again.</p>
+      <div class="choices" id="lay"><button data-act="lay-ask">Lay this down</button></div>
+    </section>`;
+}
+
+function vLaid(){
+  return `<section class="quiet"><h2 tabindex="-1" class="reading" style="font-size:1.4rem;font-weight:400">Laid down.</h2>
+    <p class="muted">Everything you wrote has been erased from this device.</p>
+    <div><button class="link" data-act="again">Begin again</button></div></section>`;
+}
+
+function render(){
+  const s = S.screen;
+  if (demoTimer){ clearInterval(demoTimer); demoTimer = null; }
+  keepAwake(["silence","closing-silence","waiting","question","rest","silent-member","gathering"].includes(s));
+  app.innerHTML =
+    s === "start" ? vStart() :
+    s === "concern" ? vConcern() :
+    s === "silence" ? vSilence(READ_OPEN, "Opening quiet", "start-questions") :
+    s === "closing-silence" ? vSilence(READ_CLOSE, "Closing quiet", "to-mirror") :
+    s === "waiting" ? vWaiting() :
+    s === "silent-member" ? vSilentMember() :
+    s === "question" ? vQuestion() :
+    s === "rest" ? vRest() :
+    s === "trouble" ? vTrouble() :
+    s === "gathering" ? vGathering() :
+    s === "carry" ? vCarry() + learnCards("Want to sit with others? Quaker meetings are open to anyone.") :
+    s === "laid" ? vLaid() : vStart();
+  const h = app.querySelector("[tabindex='-1']"); if (h && s !== "start") h.focus();
+  if (s !== "start") window.scrollTo({top:0});
+  if (s === "start") playDemo();
+  if (s === "silence" || s === "closing-silence"){
+    const r = document.getElementById("reading");
+    const mins = s === "silence" ? S.openMin : 0.5;
+    if (!reduce) later(() => r.classList.add("faded"), 3000);
+    // The quiet ends by itself and the next step simply begins.
+    later(() => { if (S.screen !== s) return; r.classList.remove("faded"); s === "silence" ? nextTurn() : gather(); }, mins * 60000);
+  }
+  if (s === "waiting") later(() => { const w = document.getElementById("wq"); if (w) w.classList.add("shown"); }, reduce ? 0 : 2500);
+  if (s === "question") later(() => { const a = document.getElementById("answer-area"); if (a) a.classList.add("shown"); }, reduce ? 0 : 2500);
+}
+
+function playDemo(){
+  const box = document.getElementById("demo-step"), dots = document.querySelectorAll("#demo-dots i");
+  if (!box) return;
+  if (reduce){
+    box.innerHTML = DEMO.map(d => `<p class="k">${esc(d.k)}</p><p class="t${d.q ? " q" : ""}">${esc(d.t)}</p>`).join("");
+    return;
+  }
+  let i = 0;
+  const show = () => {
+    const d = DEMO[i];
+    box.style.opacity = 0;
+    setTimeout(() => {
+      box.innerHTML = `<p class="k">${esc(d.k)}</p><p class="t${d.q ? " q" : ""}">${esc(d.t)}</p>`;
+      box.style.opacity = 1;
+      dots.forEach((el, j) => el.classList.toggle("on", j === i));
+      i++;
+      if (i >= DEMO.length){ clearInterval(demoTimer); demoTimer = null; }
+    }, 300);
+  };
+  show();
+  demoTimer = setInterval(show, 4200);
+}
+
+// ---- Events ----
+app.addEventListener("input", e => {
+  const f = e.target.dataset.f; if (!f) return;
+  if (f === "concern"){ S.concern = e.target.value; const b = document.getElementById("begin-btn"); if (b) b.disabled = !S.concern.trim() || !S.selected.length; }
+  else if (f === "need") S.need = e.target.value;
+  else if (f === "notes") S.notes = e.target.value;
+  else if (f === "zip") S.zip = e.target.value.replace(/[^0-9A-Za-z -]/g, "").slice(0, 10);
+  save();
+});
+app.addEventListener("change", e => {
+  const f = e.target.dataset.f; if (!f) return;
+  if (f.startsWith("c:")){
+    const id = f.slice(2);
+    S.selected = e.target.checked ? C.map(c => c.id).filter(x => x === id || S.selected.includes(x)) : S.selected.filter(x => x !== id);
+    const b = document.getElementById("begin-btn"); if (b) b.disabled = !S.concern.trim() || !S.selected.length;
+  }
+  else if (f === "openMin" || f === "pauseSec" || f === "roundsWanted"){
+    S[f] = +e.target.value;
+    if (f === "openMin"){ const b = document.getElementById("begin-btn"); if (b) b.textContent = `Begin with ${S.openMin} minute${S.openMin > 1 ? "s" : ""} of quiet`; }
+  }
+  else if (f === "wantAffirm" || f === "wantQueries" || f === "wantMirror") S[f] = e.target.checked;
+  save();
+});
+app.addEventListener("click", async e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const act = b.dataset.act;
+  if (act === "mode"){ S.mode = b.dataset.v; save(); go("concern"); }
+  else if (act === "gov-example"){ S.mode = "governance"; S.concern = GOV_EXAMPLES[+b.dataset.i]; save(); go("concern"); }
+  else if (act === "use-example"){ S.concern = (gov() ? GOV_EXAMPLES : PERSONAL_EXAMPLES)[+b.dataset.i]; save(); render(); document.getElementById("concern").focus(); }
+  else if (act === "demo-again") playDemo();
+  else if (act === "begin-silence"){ S.started = new Date().toISOString(); S.rounds = []; S.turn = 0; S.quotes = null; S.affirm = null; S.queries = null; light(); fetchQuestion(0); go("silence"); }
+  else if (act === "start-questions") nextTurn();
+  else if (act === "skip-companion"){ if (pending) { pending.ac.abort(); pending = null; } advance(); }
+  else if (act === "write"){ document.getElementById("three").hidden = true; document.getElementById("writing").hidden = false; document.getElementById("answer").focus(); }
+  else if (act === "answered"){ const v = document.getElementById("answer").value.trim(); record(v ? "answer" : "silent", v); }
+  else if (act === "pass") record("pass");
+  else if (act === "find-meeting"){
+    const z = (S.zip || "").trim();
+    try { if (z) await navigator.clipboard.writeText(z); } catch(err) {}
+    window.open(FINDER, "_blank", "noopener");
+    const n = document.getElementById("find-note"); if (n) n.textContent = z ? `Your zip code ${z} is copied. Paste it into the finder’s search box.` : "The finder is open in a new tab. Search by your zip code there.";
+  }
+  else if (act === "write-meeting") window.location.href = b.dataset.mail;
+  else if (act === "continue" || act === "retry") nextTurn();
+  else if (act === "to-close"){ if (pending) { pending.ac.abort(); pending = null; } S.current = null; go("closing-silence"); }
+  else if (act === "to-mirror") gather();
+  else if (act === "no-mirror" || act === "skip-gather"){ gathering = false; go("carry"); }
+  else if (act === "rest-chip"){ S.notes = S.notes.trim() ? S.notes.trim() + "\n" + b.dataset.v : b.dataset.v; save(); document.getElementById("notes").value = S.notes; }
+  else if (act === "print") window.print();
+  else if (act === "copy"){
+    const txt = document.getElementById("carry").innerText;
+    try { await navigator.clipboard.writeText(txt); b.textContent = "Copied"; }
+    catch(err){ document.getElementById("copy-fallback").hidden = false; const t = document.getElementById("copy-text"); t.value = txt; t.select(); }
+  }
+  else if (act === "lay-ask"){
+    document.getElementById("lay").innerHTML = `<p>Erase everything you wrote from this device? This can’t be undone.</p>
+      <div class="choices row"><button class="primary" data-act="lay-yes">Yes, lay it down</button><button data-act="lay-no">Not yet</button></div>`;
+  }
+  else if (act === "lay-no") render();
+  else if (act === "lay-yes"){ try { localStorage.removeItem(KEY); } catch(err) {} const keep = {openMin:S.openMin, pauseSec:S.pauseSec, roundsWanted:S.roundsWanted}; S = Object.assign(fresh(), keep, {screen:"laid"}); render(); }
+  else if (act === "again") go("start");
+});
+document.querySelector("[data-home]").addEventListener("click", () => {
+  if (["start","concern","carry","laid"].includes(S.screen)) go("start");
+});
+render();
+})();
+</script>
+</body>
+</html>
