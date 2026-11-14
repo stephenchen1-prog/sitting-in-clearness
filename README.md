@@ -15,26 +15,28 @@ A project of [White Knight Law Inc.](https://whiteknightlaw.org), a nonprofit th
 - **One question at a time,** with quiet in between. Pass on anything. Passed questions stay "still in the room".
 - **A closing that gives your own words back** (only phrases you wrote, checked word for word), names queries that may be in the room but not yet said, and offers one plain affirmation.
 - **A doorway to Friends:** a short introduction to Quakers, links to QuakerSpeak, FGC, Friends Journal and Quakers in Britain, and a meeting finder with a ready-to-send "may I visit?" email.
-- **Privacy:** the meeting is kept on the visitor's device. To form questions, words are sent through OpenRouter to free open-source models; this code stores and logs nothing, but free-model providers may retain what they receive, and the page says so plainly. "Lay this down" erases everything on the device. Set `CLEARNESS_BACKEND=ollama` to run fully on your own machine instead.
+- **Privacy:** the meeting is kept on the visitor's device. To form questions, words are sent through Vercel's AI Gateway to a model provider such as Google; this code stores and logs nothing, and the page says so plainly. "Lay this down" erases everything on the device. Set `CLEARNESS_BACKEND=ollama` to run fully on your own machine instead.
+- **Always works:** if no AI is reachable, each lens draws on hand-written open questions, and mirroring gives back the person's own sentences.
+
+**Live:** https://sitting-in-clearness.vercel.app
 
 ## How it's built
 
 - `web/index.html`: the whole page. Plain HTML, CSS and JavaScript, with no build step and no trackers.
 - `server/clearness.py`: the committee. Its "swarm" design is adapted from [OpenAI Swarm](https://github.com/openai/swarm) (MIT): each companion is an agent made of a name plus instructions. Companions take turns; a clerk's check sets aside any question that carries advice.
 - `server/clearness_web.py`: the API. It accepts only committee data and builds every prompt itself, with rate limits and size limits.
-- `server/model.py`: OpenRouter free models by default, tried in order; or a local Ollama.
-- `api/committee.py`: the Vercel serverless entry point.
+- `server/model.py`: Vercel AI Gateway by default (Gemma 4, then Gemini Flash-Lite, then GPT-4o-mini); or OpenRouter (`CLEARNESS_BACKEND=openrouter`), or a local Ollama (`CLEARNESS_BACKEND=ollama`).
+- `app.py`: the Vercel entry point. The whole site is one Flask app.
 
 ## Deploy (Vercel)
 
-The `web/` folder is the static site, and `api/committee.py` is the function. Set one environment variable in the Vercel project: `OPENROUTER_API_KEY`. Optionally set `CLEARNESS_MODELS` to a comma-separated list of OpenRouter model ids.
+`vercel deploy --prod`. On Vercel the AI Gateway authenticates with the project's own identity, so no API key is needed; the account needs a card on file to unlock Gateway's free credits. Without it, the hand-written fallback questions are used.
 
 ## Run it yourself
 
 ```bash
 pip install flask waitress
-OPENROUTER_API_KEY=... python server/clearness_web.py      # http://127.0.0.1:8450
-# or fully local: CLEARNESS_BACKEND=ollama (after: ollama pull llama3.2)
+CLEARNESS_BACKEND=ollama python server/clearness_web.py     # http://127.0.0.1:8450 (after: ollama pull llama3.2)
 ```
 
 ## Sources
