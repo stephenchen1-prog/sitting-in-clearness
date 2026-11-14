@@ -11,7 +11,10 @@ import os
 import urllib.error
 import urllib.request
 
-BACKEND = os.environ.get("CLEARNESS_BACKEND", "openrouter").lower()
+BACKEND = os.environ.get("CLEARNESS_BACKEND", "gateway").lower()
+# Vercel AI Gateway: on Vercel, the project's own OIDC identity authenticates; no API key to manage.
+GATEWAY_MODELS = [m.strip() for m in os.environ.get(
+    "CLEARNESS_GATEWAY_MODELS", "google/gemma-4-31b-it,google/gemini-2.5-flash-lite,openai/gpt-4o-mini").split(",") if m.strip()]
 MODELS = [m.strip() for m in os.environ.get(
     "CLEARNESS_MODELS",
     "google/gemma-4-31b-it:free,google/gemma-4-26b-a4b-it:free,nvidia/nemotron-3.5-lightning:free").split(",") if m.strip()]
@@ -71,7 +74,42 @@ def _ollama(system, user, temperature, max_tokens, json_mode):
     return _post("http://127.0.0.1:11434/api/chat", payload, {"Content-Type": "application/json"})["message"]["content"]
 
 
+def _gateway_token() -> str:
+    tok = os.environ.get("AI_GATEWAY_API_KEY", "")
+    if not tok:
+        try:
+            from flask import has_request_context, request
+            if has_request_context():
+                tok = request.headers.get("x-vercel-oidc-token", "")
+        except ImportError:
+            pass
+    return tok or os.environ.get("VERCEL_OIDC_TOKEN", "")
+
+
+def _gateway(system, user, temperature, max_tokens):
+    tok = _gateway_token()
+    if not tok:
+        raise RuntimeError("no AI Gateway credential (deploy on Vercel, or set AI_GATEWAY_API_KEY)")
+    headers = {"Authorization": f"Bearer {tok}", "Content-Type": "application/json"}
+    last = None
+    for model in GATEWAY_MODELS:
+        try:
+            r = _post("https://ai-gateway.vercel.sh/v1/chat/completions",
+                      {"model": model, "temperature": temperature, "max_tokens": max_tokens,
+                       "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]},
+                      headers)
+            text = (r.get("choices") or [{}])[0].get("message", {}).get("content") or ""
+            if text.strip():
+                return text
+            last = RuntimeError(f"{model}: empty reply")
+        except (urllib.error.URLError, TimeoutError, ValueError, KeyError) as e:
+            last = e
+    raise RuntimeError(f"no model answered ({type(last).__name__})")
+
+
 def ask(system: str, user: str, *, temperature=0.7, max_tokens=120, json_mode=False) -> str:
     if BACKEND == "ollama":
         return _ollama(system, user, temperature, max_tokens, json_mode)
-    return _openrouter(system, user, temperature, max_tokens)
+    if BACKEND == "openrouter":
+        return _openrouter(system, user, temperature, max_tokens)
+    return _gateway(system, user, temperature, max_tokens)

@@ -175,8 +175,15 @@ def committee():
                 return jsonify({"queries": meeting.queries()})
             return jsonify({"text": meeting.affirm()})
     except Exception as e:
-        print(f"[clearness] model call failed: {type(e).__name__}")  # visitor text is never logged
-        return jsonify({"error": "The service that forms the questions isn't answering right now. Please try again in a minute."}), 502
+        # No AI reachable: fall back to hand-written open questions so the sitting can continue.
+        print(f"[clearness] model call failed, using fallback: {type(e).__name__}")  # visitor text is never logged
+        if action == "question":
+            return jsonify({"question": clearness.fallback_question(meeting, member), "fallback": True})
+        if action == "reflect":
+            return jsonify({"quotes": clearness.fallback_reflect(meeting), "fallback": True})
+        if action == "queries":
+            return jsonify({"queries": clearness.fallback_queries(meeting), "fallback": True})
+        return jsonify({"text": None, "fallback": True})
     finally:
         with _state_lock:
             _waiting -= 1

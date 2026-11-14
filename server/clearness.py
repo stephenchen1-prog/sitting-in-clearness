@@ -268,6 +268,64 @@ Write only the sentence.""", temperature=0.5, max_tokens=80).strip()
         return re.sub(r"^the person showed", "You showed", text, flags=re.I)
 
 
+# ---------------- Fallback when no AI is reachable: hand-written open questions per lens ----------------
+FALLBACK = {
+    "truth": ["What feels most true about this, when you set the story aside?",
+              "What do you know about this that you haven't yet said aloud?",
+              "What would you say about this if no one were judging?",
+              "Where in this do you feel most honest with yourself?"],
+    "fear": ["What are you most afraid might happen?",
+             "Where does the pressure about this come from?",
+             "Whose disappointment do you feel most when you imagine choosing?",
+             "What would you feel if the fear were not there?"],
+    "draws": ["What draws you toward this, even a little?",
+              "When you imagine each path, where do you feel more alive?",
+              "What gives you energy when you think about this?",
+              "What part of this feels like it is truly yours to do?"],
+    "others": ["Who else is touched by this?",
+               "Whose voice do you most want to hear on this?",
+               "How might this change your relationships?",
+               "Who would you want beside you as this unfolds?"],
+    "timing": ["What makes this feel urgent?",
+               "What might become clearer with time?",
+               "What would it be like to let this rest for now?",
+               "When have you waited well before, and what did that feel like?"],
+    "carry": ["What are you carrying right now, besides this?",
+              "What would a simpler way look like to you?",
+              "What would you need to set down to make room for this?",
+              "Where are your limits in this?"],
+}
+FALLBACK_QUERIES = ["Where is there something not yet said?", "Who has not yet been heard?",
+                    "What are we afraid to name?", "How is this asking us to change?"]
+
+
+def fallback_question(meeting: "Meeting", member: Agent):
+    asked = [q["q"] for q in meeting.all_questions()]
+    for q in FALLBACK.get(member.id, []):
+        if not is_repeat(q, asked):
+            return q
+    return None
+
+
+def fallback_reflect(meeting: "Meeting", limit: int = 3) -> list:
+    """The person's own sentences, exactly as written, from their answers first."""
+    texts = [q["a"] for q in meeting.all_questions() if not q["passed"] and q["a"].strip()] + [meeting.concern]
+    out = []
+    for t in texts:
+        for s in re.split(r"(?<=[.!?])\s+", _clean(t)):
+            s = s.strip().strip('"“”')
+            if 4 <= len(s.split()) <= 25 and s not in out:
+                out.append(s)
+            if len(out) >= limit:
+                return out
+    return out
+
+
+def fallback_queries(meeting: "Meeting") -> list:
+    asked = [q["q"] for q in meeting.all_questions()]
+    return [q for q in FALLBACK_QUERIES if not is_repeat(q, asked)][:3]
+
+
 # ---------------- Chat adapter (JARVIS voice + WhatsApp): one question at a time ----------------
 _HELP = ("Sitting in Clearness, adapted from the Quaker clearness committee. It is not a real committee: "
          "for anything weighty, ask your meeting. Say 'clearness' and your concern to begin, or 'clearness meeting' and a "
