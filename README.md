@@ -15,25 +15,27 @@ A project of [White Knight Law Inc.](https://whiteknightlaw.org), a nonprofit th
 - **One question at a time,** with quiet in between. Pass on anything. Passed questions stay "still in the room".
 - **A closing that gives your own words back** (only phrases you wrote, checked word for word), names queries that may be in the room but not yet said, and offers one plain affirmation.
 - **A doorway to Friends:** a short introduction to Quakers, links to QuakerSpeak, FGC, Friends Journal and Quakers in Britain, and a meeting finder with a ready-to-send "may I visit?" email.
-- **Private by design:** words stay on the visitor's device; the server forms questions with a small local model (Ollama) and stores and logs nothing. "Lay this down" erases everything.
+- **Privacy:** the meeting is kept on the visitor's device. To form questions, words are sent through OpenRouter to free open-source models; this code stores and logs nothing, but free-model providers may retain what they receive, and the page says so plainly. "Lay this down" erases everything on the device. Set `CLEARNESS_BACKEND=ollama` to run fully on your own machine instead.
 
 ## How it's built
 
 - `web/index.html`: the whole page. Plain HTML, CSS and JavaScript, with no build step and no trackers.
 - `server/clearness.py`: the committee. Its "swarm" design is adapted from [OpenAI Swarm](https://github.com/openai/swarm) (MIT): each companion is an agent made of a name plus instructions. Companions take turns; a clerk's check sets aside any question that carries advice.
 - `server/clearness_web.py`: the API. It accepts only committee data and builds every prompt itself, with rate limits and size limits.
-- `server/local_model.py`: local Ollama only. It never calls a cloud AI.
+- `server/model.py`: OpenRouter free models by default, tried in order; or a local Ollama.
+- `api/committee.py`: the Vercel serverless entry point.
 
-## Run it
+## Deploy (Vercel)
+
+The `web/` folder is the static site, and `api/committee.py` is the function. Set one environment variable in the Vercel project: `OPENROUTER_API_KEY`. Optionally set `CLEARNESS_MODELS` to a comma-separated list of OpenRouter model ids.
+
+## Run it yourself
 
 ```bash
 pip install flask waitress
-ollama pull llama3.2
-python server/clearness_web.py      # http://127.0.0.1:8450
+OPENROUTER_API_KEY=... python server/clearness_web.py      # http://127.0.0.1:8450
+# or fully local: CLEARNESS_BACKEND=ollama (after: ollama pull llama3.2)
 ```
-
-To share it publicly from that machine: `tailscale funnel --bg 8450`.
-The `web/` folder can also be hosted as a static site (see `vercel.json`); `web/config.js` points it at the API.
 
 ## Sources
 

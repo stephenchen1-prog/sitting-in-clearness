@@ -144,7 +144,7 @@ footer b{color:var(--ink)}
     <h2>About</h2>
     <p>Sitting in Clearness was made by Stephen Chen as part of the work of White Knight Law Inc., a nonprofit that builds open-source tools to serve people. He makes AI that supports human judgment rather than replacing it.</p>
     <p>Questions, a correction, or a quotation we got wrong? Write to <b style="user-select:all">ai@whiteknightlaw.org</b>.</p>
-    <p><b>Where your words go.</b> What you write stays on this device. To form each question, your words are sent to one computer run by White Knight Law, where a small AI model reads them. Nothing is stored there or shared, and no outside AI company sees it. “Lay this down” erases it from this device.</p>
+    <p><b>Where your words go.</b> What you write is kept on this device. To form each question, your words are sent through OpenRouter to an open-source AI model. Our code stores and logs nothing, but the companies that run free AI models may keep or learn from what is sent to them. So please leave out names and anything you would not want seen. “Lay this down” erases everything from this device.</p>
     <p>This is not a clearness committee and cannot replace one. For a weighty matter, ask your meeting.</p>
   </footer>
 </div>
@@ -154,7 +154,7 @@ footer b{color:var(--ink)}
 "use strict";
 const API = String(window.CLEARNESS_API || "").replace(/\/$/, "");
 const KEY = "sitting-in-clearness-v3";
-const OFFLINE = "The computer that forms the questions isn’t answering right now. It may be resting. Please try again a little later.";
+const OFFLINE = "The service that forms the questions isn’t answering right now. Please try again in a minute.";
 
 const C = [
   {id:"truth",  lens:"Listening for truth",            friend:"Lucretia Mott",   years:"1793–1880", why:"Minister and abolitionist who would not set any church’s authority above conscience.", quote:"Truth for authority, not authority for truth.", source:"Her motto"},
@@ -396,7 +396,7 @@ function vConcern(){
   return `<section class="stack">
     <h2 tabindex="-1">${gov() ? "The matter before the meeting" : "Your concern"}</h2>
     <div class="field">
-      <label for="concern">${gov() ? "What is the meeting trying to discern?" : "What are you trying to discern?"}<span class="hint">A few lines is plenty. Leave out names.</span></label>
+      <label for="concern">${gov() ? "What is the meeting trying to discern?" : "What are you trying to discern?"}<span class="hint">A few lines is plenty. Leave out names and private details; an AI service reads this to form questions.</span></label>
       <textarea id="concern" data-f="concern" rows="5">${esc(S.concern)}</textarea>
     </div>
     <details class="card"><summary>Or start from an example</summary><div class="inner"><div class="example-list">

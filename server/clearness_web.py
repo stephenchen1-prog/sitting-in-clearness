@@ -1,17 +1,13 @@
 """Sitting in Clearness: the question server.
 
-Run:  python server/clearness_web.py      then open http://127.0.0.1:8450
-It serves the page (web/index.html) and /api/committee, which accepts only
-committee data and builds every prompt itself, so it can't be used as a general
-AI service. The same API also serves the Vercel-hosted copy of the page (CORS).
+In production this runs on Vercel as the function api/committee.py (see vercel.json).
+To run it yourself:  python server/clearness_web.py   then open http://127.0.0.1:8450
 
-Safe for the public internet behind Tailscale Funnel:
+/api/committee accepts only committee data and builds every prompt itself, so it
+can't be used as a general AI service:
   - no free-form prompts; strict size limits on every field
-  - per-visitor and whole-site rate limits, and a cap on calls waiting
-  - one model call at a time (protects the machine's memory)
-  - nothing a visitor writes is logged or stored
-Public:        tailscale funnel --bg 8450     (off: tailscale funnel --https=443 off)
-Tailnet only:  tailscale serve --bg 8450
+  - per-visitor and whole-site rate limits, and a cap on calls in flight
+  - nothing a visitor writes is logged or stored by this code
 """
 import ipaddress
 import os
@@ -54,12 +50,16 @@ app.config["MAX_CONTENT_LENGTH"] = 40_000
 
 
 def _visitor() -> str:
-    """Only trust X-Forwarded-For when the connection comes from tailscaled on this machine,
-    and then only its last entry (the one the proxy added). Group IPv6 users by /64."""
+    """On Vercel, use the address Vercel's edge sets (x-real-ip). Elsewhere, trust
+    X-Forwarded-For only from a local proxy (tailscaled), and only its last entry.
+    Group IPv6 users by /64."""
     ra = request.remote_addr or "?"
-    if ra not in ("127.0.0.1", "::1"):
+    if os.environ.get("VERCEL"):
+        ip = request.headers.get("x-real-ip") or ra
+    elif ra not in ("127.0.0.1", "::1"):
         return ra[:64]
-    ip = request.headers.get("X-Forwarded-For", "").split(",")[-1].strip() or ra
+    else:
+        ip = request.headers.get("X-Forwarded-For", "").split(",")[-1].strip() or ra
     if ":" in ip:
         try:
             ip = str(ipaddress.ip_network(ip + "/64", strict=False).network_address)
@@ -176,7 +176,7 @@ def committee():
             return jsonify({"text": meeting.affirm()})
     except Exception as e:
         print(f"[clearness] model call failed: {type(e).__name__}")  # visitor text is never logged
-        return jsonify({"error": "The computer that forms the questions isn't answering right now. Please try again."}), 502
+        return jsonify({"error": "The service that forms the questions isn't answering right now. Please try again in a minute."}), 502
     finally:
         with _state_lock:
             _waiting -= 1

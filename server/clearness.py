@@ -19,7 +19,7 @@ import os
 import re
 from dataclasses import dataclass
 
-from local_model import ask
+from model import ask
 
 WEB_URL = os.environ.get("CLEARNESS_URL", "https://lenovo.taile99f29.ts.net")
 
